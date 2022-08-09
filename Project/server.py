@@ -11,6 +11,10 @@ from common.variables import *
 from common.utils import *
 from decos import log
 
+# lesson_2
+from metaclasses import ServerVerifier
+from descripters import CheckPort
+
 # Инициализация логирования сервера.
 logger = logging.getLogger('server_dist')
 
@@ -28,7 +32,10 @@ def arg_parser():
 
 
 # Основной класс сервера
-class Server:
+class Server(metaclass=ServerVerifier):
+    # Lesson_2
+    port = CheckPort()
+
     def __init__(self, listen_address, listen_port):
         # Параметры подключения
         self.addr = listen_address
@@ -168,7 +175,8 @@ def main():
     # Загрузка параметров командной строки, если нет параметров,
     # то задаём значения по умолчанию.
     listen_address, listen_port = arg_parser()
-
+    # listen_port = -50
+    # listen_port = 0
     # Создание экземпляра класса - сервера.
     server = Server(listen_address, listen_port)
     server.main_loop()
