@@ -56,6 +56,7 @@ class ServerVerifier(type):
             raise RuntimeError('Для сервера не допустимо наличие методов "connect"')
 
         # Для отладки оставлю.
+
         # print(20 * '=')
         # print(methods_load_global)
         # print(20 * '=')
@@ -86,6 +87,7 @@ class ClientVerifier(type):
             raise RuntimeError('Для клиента не допустимо наличие методов "accept", "listen"')
 
         # Для отладки оставлю.
+
         # print(20 * '=')
         # print(methods_load_global)
         # print(20 * '=')
@@ -94,3 +96,4 @@ class ClientVerifier(type):
         # print(attributes)
 
         super().__init__(future_class_name, future_class_parent, future_class_attrs)
+

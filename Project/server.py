@@ -16,6 +16,10 @@ from descryptors import CheckPort
 from metaclasses import ServerVerifier
 from server_storage import ServerStorage
 
+# lesson_2
+from metaclasses import ServerVerifier
+from descripters import CheckPort
+
 # Инициализация логирования сервера.
 logger = logging.getLogger('server_dist')
 
@@ -33,11 +37,13 @@ def arg_parser():
 
 
 # Основной класс сервера
+
 class Server(threading.Thread, metaclass=ServerVerifier):
     port = CheckPort()
 
     def __init__(self, listen_address, listen_port, database):
         # Параментры подключения
+
         self.addr = listen_address
         self.port = listen_port
 
@@ -180,6 +186,7 @@ def main():
     # Загрузка параметров командной строки, если нет параметров, то задаём значения по умолчанию.
     listen_address, listen_port = arg_parser()
 
+
     # Инициализация базы данных
     database = ServerStorage()
 
@@ -211,6 +218,7 @@ def main():
                 print(f'Пользователь: {user[0]} время входа: {user[1]}. Вход с: {user[2]}:{user[3]}')
         else:
             print('Команда не распознана.')
+
 
 
 if __name__ == '__main__':
