@@ -20,6 +20,9 @@ from server_storage import ServerStorage
 from metaclasses import ServerVerifier
 from descripters import CheckPort
 
+# Lesson_4
+import server_gui
+
 # Инициализация логирования сервера.
 logger = logging.getLogger('server_dist')
 
@@ -178,6 +181,7 @@ def print_help():
     print('users - список известных пользователей')
     print('connected - список подключённых пользователей')
     print('loghist - история входов пользователя')
+    print('p - панель управления')  # Lesson_4
     print('exit - завершение работы сервера.')
     print('help - вывод справки по поддерживаемым командам')
 
@@ -185,7 +189,6 @@ def print_help():
 def main():
     # Загрузка параметров командной строки, если нет параметров, то задаём значения по умолчанию.
     listen_address, listen_port = arg_parser()
-
 
     # Инициализация базы данных
     database = ServerStorage()
@@ -210,15 +213,17 @@ def main():
                 print(f'Пользователь {user.login}, последний вход: {user.last_connection}')
         elif command == 'connected':
             for user in database.active_users_list():
-                print(f'Пользователь {user[0]}, подключен: {user.ip}:{user.port}, время установки соединения: {user.login_time}')
+                print(
+                    f'Пользователь {user[0]}, подключен: {user.ip}:{user.port}, время установки соединения: {user.login_time}')
         elif command == 'loghist':
             name = input('Введите имя пользователя для просмотра истории. '
                          'Для вывода всей истории, просто нажмите Enter: ')
             for user in database.login_history(name):
                 print(f'Пользователь: {user[0]} время входа: {user[1]}. Вход с: {user[2]}:{user[3]}')
+        elif command == 'p':  # Lesson_4
+            server_gui.main(database)
         else:
             print('Команда не распознана.')
-
 
 
 if __name__ == '__main__':
