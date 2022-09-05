@@ -52,7 +52,28 @@ class ServerStorage:
         def __repr__(self):
             return f'<User({self.user}, {self.ip}, {self.port}, {self.login_time})>'
 
-    def __init__(self):
+    # Lesson_4
+    class UsersContacts:
+        def __init__(self, user, contact):
+            self.id = None
+            self.user = user
+            self.contact = contact
+
+        def __repr__(self):
+            return f'<User contact({self.user}, {self.contact})>'
+
+    # Lesson_4
+    class UsersHistory:
+        def __init__(self, user):
+            self.id = None
+            self.user = user
+            self.sent = 0
+            self.accepted = 0
+
+        def __repr__(self):
+            return f'<History( User {self.user}, sent {self.sent}, accepted {self.accepted})>'
+
+    def __init__(self, path):
         # Создаем таблицы, связываем данные
         self.metadata = MetaData()
 
@@ -79,12 +100,33 @@ class ServerStorage:
                                          Column('port', Integer)
                                          )
 
+        # Lesson_4. Таблица контактов пользователей
+        contacts = Table('Contacts', self.metadata,
+                         Column('id', Integer, primary_key=True),
+                         Column('user', ForeignKey('users.id')),
+                         Column('contact', ForeignKey('users.id'))
+                         )
+
+        # Lesson_4. Таблица истории пользователей
+        users_history = Table('History', self.metadata,
+                              Column('id', Integer, primary_key=True),
+                              Column('user', ForeignKey('users.id')),
+                              Column('sent', Integer),
+                              Column('accepted', Integer)
+                              )
+
         # Создаем базу + таблицы
-        self.engine = create_engine('sqlite:///server_base.db3', echo=False)
+        # self.engine = create_engine('sqlite:///server_base.db3', echo=False)
+
+        # Lesson_4. Путь к базе берем из переданного параметра
+        self.engine = create_engine(f'sqlite:///{path}', echo=False)
+
         self.metadata.create_all(self.engine)
         mapper(self.Users, all_users_table)
         mapper(self.ActiveUsers, active_users_table)
         mapper(self.ConnectionHistory, connection_history_table)
+        mapper(self.UsersContacts, contacts)
+        mapper(self.UsersHistory, users_history)
 
         Session = sessionmaker(bind=self.engine)
         self.session = Session()
@@ -102,11 +144,23 @@ class ServerStorage:
         if result.count():
             user = result.first()
             user.last_connection = datetime.datetime.now()
+
+            # Первончальное заполнение таблицы History
+            # try:
+            #    user_in_history = self.UsersHistory(user.id)
+            #    self.session.add(user_in_history)
+            #    self.session.commit()
+            # except:
+            #    print('')
+
             self.session.commit()
         else:  # Новый пользователь
             user = self.Users(name, datetime.datetime.now())
             self.session.add(user)
             self.session.commit()
+            # Lesson_4
+            user_in_history = self.UsersHistory(user.id)
+            self.session.add(user_in_history)
 
         # Обновим данные об активных пользователях. По идее таблица должна быть пустая, мы же ее очищаем при старте
         active_user = self.ActiveUsers(user.id, ip, port)
@@ -149,13 +203,97 @@ class ServerStorage:
             query = query.filter(self.Users.login == name)
         return query.all()
 
+    # Lesson_4. Cписок контактов пользователя.
+    def get_contacts(self, username):
+        # Запрашиваем указанного пользователя
+        user = self.session.query(self.Users).filter_by(name=username).one()
+
+        # Запрашиваем его список контактов
+        query = self.session.query(self.UsersContacts, self.Users.login). \
+            filter_by(user=user.id). \
+            join(self.Users, self.UsersContacts.contact == self.Users.id)
+
+        # выбираем только имена пользователей и возвращаем их.
+        return [contact[1] for contact in query.all()]
+
+    # Lesson_4. Количество переданных и полученных сообщений
+    def message_history(self):
+        query = self.session.query(
+            self.Users.name,
+            self.Users.last_connection,
+            self.UsersHistory.sent,
+            self.UsersHistory.accepted
+        ).join(self.Users)
+        # Возвращаем список кортежей
+        return query.all()
+
+    # Lesson_4. Функция добавляет контакт для пользователя.
+    def add_contact(self, user, contact):
+        # Получаем ID пользователей
+        user = self.session.query(self.Users).filter_by(login=user).first()
+        contact = self.session.query(self.Users).filter_by(login=contact).first()
+
+        # Проверяем что не дубль и что контакт может существовать (полю пользователь мы доверяем)
+        if not contact or self.session.query(self.UsersContacts).filter_by(user=user.id,
+                                                                           contact=contact.id).count():
+            return
+
+        # Создаём объект и заносим его в базу
+        contact_row = self.UsersContacts(user.id, contact.id)
+        self.session.add(contact_row)
+        self.session.commit()
+
+    # Lesson_4. Функция удаляет контакт из базы данных
+    def remove_contact(self, user, contact):
+        # Получаем ID пользователей
+        user = self.session.query(self.Users).filter_by(login=user).first()
+        contact = self.session.query(self.Users).filter_by(login=contact).first()
+
+        # Проверяем что контакт может существовать (полю пользователь мы доверяем)
+        if not contact:
+            return
+
+        # Удаляем требуемое
+        print(self.session.query(self.UsersContacts).filter(
+            self.UsersContacts.user == user.id,
+            self.UsersContacts.contact == contact.id
+        ).delete())
+        self.session.commit()
+
+    # Lesson_4. Функция фиксирует передачу сообщения и делает соответствующие отметки в БД
+    def process_message(self, sender, recipient):
+        # Получаем ID отправителя и получателя
+        sender = self.session.query(self.Users).filter_by(login=sender).first().id
+        recipient = self.session.query(self.Users).filter_by(login=recipient).first().id
+        # Запрашиваем строки из истории и увеличиваем счётчики
+        sender_row = self.session.query(self.UsersHistory).filter_by(user=sender).first()
+        # print(sender_row)
+        sender_row.sent += 1
+        recipient_row = self.session.query(self.UsersHistory).filter_by(user=recipient).first()
+        recipient_row.accepted += 1
+
+        self.session.commit()
+
 
 if __name__ == '__main__':
-    db = ServerStorage()
+    db = ServerStorage('server_base.db3')
     db.user_login('login', '192.168.0.1', 2525)
     db.user_login('login1', '192.168.0.2', 7777)
+    db.user_login('login2', '192.168.0.3', 7778)
+    db.user_login('login3', '192.168.0.4', 7789)
+    db.user_login('login4', '192.168.0.5', 7787)
+    db.user_login('login5', '192.168.0.6', 7788)
     print(db.users_list())
     print(db.active_users_list())
     db.user_logout('login1')
     print(db.active_users_list())
     print(db.login_history('login1'))
+
+    # Lesson_4
+    db.add_contact('login', 'login1')
+    db.add_contact('login', 'login2')
+    db.add_contact('login3', 'login')
+    db.remove_contact('login', 'login2')
+    db.process_message('login', 'login1')
+    db.process_message('login2', 'login3')
+    db.process_message('login', 'login4')

@@ -10,7 +10,7 @@ clients=[]
 server=''
 pathOfFile=path.dirname(__file__)
 pathServer=path.join(pathOfFile, "server.py")
-pathClient=path.join(pathOfFile, "client.py")
+pathClient=path.join(pathOfFile, "client_run.py")
 pathToScriptServer = path.join(pathOfFile, "start","startServer")
 pathToScriptClients = path.join(pathOfFile, "start","startClient")    
 print (pathClient)
