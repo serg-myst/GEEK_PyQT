@@ -44,9 +44,9 @@ while True:
         # P_LIST.append(get_subprocess("server.py"))
         time.sleep(0.5)
         for i in range(CLIENTS_COUNT):
-            P_LIST.append(get_subprocess("client_run.py"))
+            P_LIST.append(get_subprocess("client.py"))
             time.sleep(1)
-            P_LIST.append(get_subprocess('client_run.py', '--mode send'))
+            P_LIST.append(get_subprocess('client.py', '--mode send'))
             time.sleep(1)
 
         print(f'Число запущенных пар клиентских скриптов: {CLIENTS_COUNT}')

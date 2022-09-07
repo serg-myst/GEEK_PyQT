@@ -1,6 +1,6 @@
 import sys
 sys.path.append('../')
-from client_run import create_presence, process_response_ans
+from client import create_presence, process_response_ans
 from common.variables import *
 import unittest
 from errors import ReqFieldMissingError, ServerError
