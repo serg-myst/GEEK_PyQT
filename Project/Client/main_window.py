@@ -14,16 +14,24 @@ from client.transport import ClientTransport
 from client.start_dialog import UserNameDialog
 from common.errors import ServerError
 
+# Lesson_6
+from Cryptodome.Cipher import PKCS1_OAEP
+from Cryptodome.PublicKey import RSA
+
 logger = logging.getLogger('client_dist')
 
 
 # Класс основного окна
 class ClientMainWindow(QMainWindow):
-    def __init__(self, database, transport):
+    def __init__(self, database, transport, keys):  # Lesson_6 добавили keys
         super().__init__()
         # основные переменные
         self.database = database
         self.transport = transport
+
+        # Lesson_6
+        # объект - дешифорвщик сообщений с предзагруженным ключём
+        self.decrypter = PKCS1_OAEP.new(keys)
 
         # Загружаем конфигурацию окна из дизайнера
         self.ui = Ui_MainClientWindow()
@@ -48,6 +56,11 @@ class ClientMainWindow(QMainWindow):
         self.history_model = None
         self.messages = QMessageBox()
         self.current_chat = None  # Текущий контакт с которым идёт обмен сообщениями
+
+        # Lesson_6
+        self.current_chat_key = None
+        self.encryptor = None
+
         self.ui.list_messages.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
         self.ui.list_messages.setWordWrap(True)
 
